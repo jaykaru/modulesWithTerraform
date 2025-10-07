@@ -1,7 +1,7 @@
 module "ec2_instance" {
   source              = "./modules/ec2_instance"
-  ami_value           = "ami-046c2381f11878233"
-  instance_type_value = "t3.micro"
+  ami_value           = var.ami_value
+  instance_type_value = var.instance_type_value
 }
 
 # module "ec2-instance" {
@@ -16,5 +16,5 @@ module "ec2_instance" {
 
 module "s3_bucket" {
   source            = "./modules/s3_bucket"
-  state_bucket_name = "jk-terraform-state-bucket-12345"
+  state_bucket_name = var.state_bucket_name
 }
