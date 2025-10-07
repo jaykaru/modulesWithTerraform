@@ -104,6 +104,7 @@ Imagine writing a Python program:
 
 If the function doesn’t declare instance_type, Python throws an error. Same with Terraform — child modules must declare their own variables.
 
+```python
 # Root program
 def main():
     instance_type = "t3.micro"  # root variable
@@ -114,4 +115,4 @@ def create_ec2(instance_type):  # function parameter
     print(f"Creating EC2 of type {instance_type}")
 
 
----
+```
