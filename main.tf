@@ -16,5 +16,5 @@ module "ec2_instance" {
 
 module "s3_bucket" {
   source = "./modules/s3_bucket"
-  state_bucket = "jk-terraform-state-bucket-12345"
+  state_bucket_name = "jk-terraform-state-bucket-12345"
 }
