@@ -1,13 +1,61 @@
-# Terraform state files
+
+# -------------------------
+# Terraform
+# -------------------------
+# Terraform state file that tracks the current state of your infrastructure
 *.tfstate
+# Backup of the Terraform state file
 *.tfstate.backup
-
-# Local Terraform directories
+# Directory where Terraform stores plugins and modules.
 .terraform/
+# Variables files often contain senstive data such as passwords or API keys
+*.tfvars
+*.tfvars.json
+# Log file created if Terraform crashes
+crash.log
 
-# Terraform lock file (optional for modules)
-# Uncomment the line below if you're building reusable modules
-.terraform.lock.hcl
+# Override configuration files.
+# override.tf
+# override.tf.json
 
-Secrets
+# Pattern for any override files.
+# *_override.tf
+# *_override.tf.json
+
+
+# -------------------------
+# AWS CLI
+# -------------------------
+# AWS CLI configuration folder (contains credentials)
+.aws/
+
+# Private keys and certificates used for SSH or SSL
+*.pem
+*.key
+*.crt
+
+
+# -------------------------
+# General Secrets
+# -----------------------
+# Environment variable files (e.g., dev.env, prod.env).
+# Usually contain secrets like API keys, database credentials.
 *.env
+# Files explicitly storing secrets (e.g., aws.secret, azure.secret).
+# Could include tokens, passwords, or encryption keys.
+*.secret
+# Configuration files (e.g., app.config, settings.config).
+# Often contain system-specific paths or credentials.
+*.config
+# Credential files (e.g., aws.credentials, db.credentials).
+# Typically store usernames, passwords, or access tokens.
+*.credentials
+
+
+# -------------------------
+# IDE / Editor
+# -------------------------
+# This is the folder created by Visual Studio Code.
+# It contains workspace settings, extensions, and launch configurations.
+# These are machine-specific and shouldn’t be shared in the repo
+.vscode/
