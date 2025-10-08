@@ -12,3 +12,8 @@ variable "state_bucket_name" {
   description = "The name of the S3 bucket"
   type        = string
 }
+
+variable "terrform_lock_name" {
+  description = "The name of the DynamoDB table"
+  type        = string
+}
