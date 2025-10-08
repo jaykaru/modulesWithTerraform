@@ -18,3 +18,8 @@ module "s3_bucket" {
   source            = "./modules/s3_bucket"
   state_bucket_name = var.state_bucket_name
 }
+
+module "dynamodb_table" {
+  source        = "./modules/dynamodb_table"
+  terrform_lock_name = var.terrform_lock_name
+}
