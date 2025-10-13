@@ -27,13 +27,13 @@ resource "aws_instance" "web_server" {
 
 // Remote-exec provisioner to run commands on the remote EC2 instance
   provisioner "remote-exec" {
-    inline = [
-      "echo 'Hello from the remote machine!'",
-      "sudo apt update -y", # Update package lists for Ubuntu
-      "sudo apt install python3-pip -y", # Install Python3
-      "cd /home/ubuntu", # Change to the directory where app.py is located
-      "sudo pip3 install flask", # Install Flask
-      "sudo python3 app.py &" # Run the Python script in the background(&)
+   inline = [
+      "echo 'Hello from the remote instance'",
+      "sudo apt update -y",  # Update package lists (for ubuntu)
+      "sudo apt-get install -y python3-pip",  # Example package installation
+      "cd /home/ubuntu",
+      "sudo pip3 install flask",
+      "sudo python3 app.py &",
     ]
     
   }
