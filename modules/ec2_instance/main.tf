@@ -20,7 +20,7 @@ resource "aws_instance" "web_server" {
 
 // File provisioner to copy a file from local to remote EC2 instance
   provisioner "file" {
-    source = "${path.module}../../scripts/app.py"  //${path.module} ensures the path is resolved relative to the module, not the root working directory
+    source = ("${path.module}/../../scripts/app.py")  //${path.module} ensures the path is resolved relative to the module, not the root working directory
     destination = "/home/ubuntu/app.py" // path on the remote instance
     
   }
