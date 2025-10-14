@@ -29,14 +29,17 @@ resource "aws_instance" "web_server" {
   provisioner "remote-exec" {
    inline = [
       "set -e",
-      "test -f /home/ubuntu/app.py || { echo 'app.py missing'; exit 1; }", # Check if app.py exists
       "echo 'Hello from the remote instance'",
       "sudo apt update -y",  # Update package lists (for ubuntu)
       "sudo apt install python3-pip -y",  # Example package installation
       # "sudo pip3 install flask", new version prevents pip from installing packages because Python environments is mannaged by the OS
       "sudo apt install python3-flask -y", # This installs Flask via Ubuntu’s package manager
+      "test -f /home/ubuntu/app.py || { echo 'app.py missing'; exit 1; }", # Check if app.py exists
       "sudo touch /home/ubuntu/app.log && sudo chown ubuntu:ubuntu /home/ubuntu/app.log", # Create log file and set ownership
-      "bash -c 'cd /home/ubuntu && nohup setsid sudo python3 app.py > /home/ubuntu/app.log 2>&1 & disown'"
+      "bash -c \"cd /home/ubuntu && nohup setsid sudo python3 app.py > /home/ubuntu/app.log 2>&1 &\"",      
+      "sleep 5",
+      "curl -s http://localhost:80 || echo 'Health check failed'"
+
     ]
     
   }
