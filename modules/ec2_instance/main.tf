@@ -28,18 +28,18 @@ resource "aws_instance" "web_server" {
 // Remote-exec provisioner to run commands on the remote EC2 instance
   provisioner "remote-exec" {
    inline = [
-      "set -e",
-      "echo 'Hello from the remote instance'",
+      "set -e", # To exit immediately if a command exits with a non-zero status (i.e fails)
+      "echo -e \"\\e[32mHello from the remote instance\\e[0m\"", # Print a message in green color \e[32m for green, \e[0m to reset, use -e to enable interpretation of backslash escapes and \ to escape "double quotes" and "\"
       "sudo apt update -y",  # Update package lists (for ubuntu)
-      "sudo apt install python3-pip -y",  # Example package installation
+      "sudo apt install python3-flask -y",  # Example package installation
       # "sudo pip3 install flask", new version prevents pip from installing packages because Python environments is mannaged by the OS
-      "sudo apt install python3-flask -y", # This installs Flask via Ubuntu’s package manager
-      "test -f /home/ubuntu/app.py || { echo 'app.py missing'; exit 1; }", # Check if app.py exists
-      "sudo touch /home/ubuntu/app.log && sudo chown ubuntu:ubuntu /home/ubuntu/app.log", # Create log file and set ownership
-      "bash -c \"cd /home/ubuntu && nohup setsid sudo python3 app.py > /home/ubuntu/app.log 2>&1 &\"",      
-      "sleep 5",
-      "curl -s http://localhost:80 || echo 'Health check failed'"
-
+      # "test -f /home/ubuntu/app.py || { echo 'app.py missing'; exit 1; }", # Check if app.py exists
+      # "sudo touch /home/ubuntu/app.log && sudo chown ubuntu:ubuntu /home/ubuntu/app.log", # Create log file and set ownership
+      # "bash -c \"cd /home/ubuntu && nohup setsid sudo python3 app.py > /home/ubuntu/app.log 2>&1 &\"",   # Run the app in the background and redirect output to log file   
+      # "bash -c \"cd /home/ubuntu && nohup sudo python3 app.py > /home/ubuntu/app.log 2>&1 &\"",      
+      "cd /home/ubuntu && nohup sudo python3 app.py > /home/ubuntu/app.log 2>&1 &",      
+      "sleep 5", # sleep 5 gives it time to start the service if not scripts ends before the service starts
+      "curl -s http://localhost:80 || echo 'Health check failed'" // Simple health check to verify the web server is running
     ]
     
   }
