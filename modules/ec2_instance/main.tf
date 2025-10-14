@@ -11,12 +11,12 @@ resource "aws_instance" "web_server" {
   # associate_public_ip_address = true
 
  // Instructions for connecting to the instance
-  connection {
-    type        = "ssh"
-    user        = var.ssh_user_ubuntu
-    private_key = file(var.private_key_path)
-    host        = self.public_ip
-  }
+  # connection {
+  #   type        = "ssh"
+  #   user        = var.ssh_user_ubuntu
+  #   private_key = file(var.private_key_path)
+  #   host        = self.public_ip
+  # }
 
 // File provisioner to copy a file from local to remote EC2 instance
   provisioner "file" {
