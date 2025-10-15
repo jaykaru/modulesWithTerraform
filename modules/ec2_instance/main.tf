@@ -4,7 +4,7 @@
 resource "aws_instance" "web_server" {
   ami           = var.ami_value
   instance_type = var.instance_type_value
-  key_name      = var.key_pair_name
+  key_name      = aws_key_pair.key_pairName.key_name
   subnet_id     = var.sub_id
   vpc_security_group_ids = var.sg_ids
   tags = merge(var.global_tags,var.instance_webserver_tag)
@@ -61,7 +61,7 @@ user_data = <<-EOF
 # Key Pair
 # -------------------------------
 
-resource "aws_key_pair" "deployer" {
-  key_name   = var.key_pair_name
+resource "aws_key_pair" "key_pairName" {
+  key_name   = "${var.key_pair_name}-${terraform.workspace}"
   public_key = file(var.public_key_path)
 }
