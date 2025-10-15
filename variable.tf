@@ -72,12 +72,16 @@ variable "private_key_path" {
 }
 variable "ami_value" {
   description = "The AMI to use for the instance"
-  type        = string
 }
 
 variable "instance_type_value" {
   description = "The type of instance to use"
-  type        = string
+  type        = map(string)
+  default = {
+    "dev"   = "t3.small",
+    "stage" = "t3.micro",
+    "prod"  = "t3.micro"
+  }
 }
 variable "ssh_user_ubuntu" {
   description = "SSH username for EC2 instance"
