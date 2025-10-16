@@ -18,7 +18,12 @@ variable "ami_value" {
 }
 variable "instance_type_value" {
   description = "The type of instance to use"
-  type        = string
+  type        = map(string)
+  default = {
+    "dev"   = "t3.small",
+    "stage" = "t3.micro",
+    "prod"  = "t3.micro"
+  }
 }
 variable "key_pair_name" {
   description = "The name of the AWS key pair to use for the instance"
