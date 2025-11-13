@@ -60,15 +60,21 @@ variable "key_pair_name" {
   type        = string
 }
 
-variable "public_key_path" {
-  description = "The path to the public key file"
-  type        = string
+# variable "public_key_path" {
+#   description = "The path to the public key file"
+#   type        = string
+# }
+
+variable "public_key" {
+  type = string
 }
+
 // used by you to SSH into the instance
 // SSH matches your private key to the public key injected to EC2 instance
 variable "private_key_path" {
   description = "The path to the private key file"
   type        = string
+  default = "~/.ssh/id_rsa"
 }
 variable "ami_value" {
   description = "The AMI to use for the instance"

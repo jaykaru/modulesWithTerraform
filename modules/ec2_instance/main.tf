@@ -63,5 +63,6 @@ user_data = <<-EOF
 
 resource "aws_key_pair" "key_pairName" {
   key_name   = "${var.key_pair_name}-${terraform.workspace}"
-  public_key = file(var.public_key_path)
+  # public_key = file(var.public_key_path)
+  public_key = var.public_key
 }
