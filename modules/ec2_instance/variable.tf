@@ -39,8 +39,12 @@ variable "public_key" {
 }
 
 // Used by you to SSH into the instance
-variable "private_key_path" {
-  description = "The path to the private key file"
+# variable "private_key_path" {
+#   description = "The path to the private key file"
+#   type        = string
+# }
+variable "private_key" {
+  description = "The private key content to SSH into the instance"
   type        = string
 }
 variable "ssh_user_ubuntu" {
