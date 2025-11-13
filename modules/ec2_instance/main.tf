@@ -14,8 +14,8 @@ resource "aws_instance" "web_server" {
   connection {
     type        = "ssh"
     user        = var.ssh_user_ubuntu
-    # private_key = file(var.private_key_path)
-    private_key = var.private_key
+    private_key = file(var.private_key_path)
+    # private_key = var.private_key
     host        = self.public_ip
   }
 
@@ -64,6 +64,6 @@ user_data = <<-EOF
 
 resource "aws_key_pair" "key_pairName" {
   key_name   = "${var.key_pair_name}-${terraform.workspace}"
-  # public_key = file(var.public_key_path)
-  public_key = var.public_key
+  public_key = file(var.public_key_path)
+  # public_key = var.public_key
 }
