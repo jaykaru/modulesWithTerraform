@@ -67,7 +67,7 @@ variable "key_pair_name" {
 
 variable "public_key" {
   description = "The public key content to be injected to the EC2 instance"
-  type = string
+  type        = string
 }
 
 // used by you to SSH into the instance
