@@ -84,7 +84,7 @@ variable "instance_type_value" {
   description = "The type of instance to use"
   type        = map(string)
   default = {
-    "dev"   = "t3.small",
+    "dev"   = "t3.micro",
     "stage" = "t3.micro",
     "prod"  = "t3.micro"
   }
