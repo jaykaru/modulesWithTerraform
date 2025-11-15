@@ -44,6 +44,9 @@ jobs:
       - name: Terraform Format Check
         run: terraform fmt -check
 
+      - name: Debug Env
+        run: env | grep TF_TOKEN
+
       # 5. Terraform Init
       - name: Terraform Init
         run: terraform init
