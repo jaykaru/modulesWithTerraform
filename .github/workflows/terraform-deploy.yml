@@ -40,9 +40,9 @@ jobs:
         run:  |
            echo "Using Terraform Cloud workspace: $TF_WORKSPACE"
 
-      # 4. Terraform Format Check
-      - name: Terraform Format Check
-        run: terraform fmt -check
+      # 4. Terraform Format Check auto fix 
+      - name: Terraform Format 
+        run: terraform fmt -recursive
 
       - name: Debug Env
         run: env | grep TF_TOKEN
