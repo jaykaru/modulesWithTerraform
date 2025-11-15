@@ -30,22 +30,24 @@ jobs:
       - name: Checkout Repository 
         uses: actions/checkout@v3
 
-      # 2. Setup Terraform
+      # 2. Debug Environment Variables
+      - name: Debug Environment Variables
+        run: |
+          echo "Selected environment: ${{ github.event.inputs.environment }}"
+          echo "Terraform Cloud Workspace: $TF_WORKSPACE"
+          echo "Token length: ${#TF_TOKEN_app_terraform_io}"
+
+      # 3. Setup Terraform
       - name: Setup Terraform 
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.7
 
-      # 3. Show selected workspace
-      - name: Show Selected Workspace
-        run:  |
-           echo "Using Terraform Cloud workspace: $TF_WORKSPACE"
-
       # 4. Terraform Format Check auto fix 
       - name: Terraform Format 
         run: terraform fmt -recursive
 
-      
+      # 5. Validate Token
       - name: Debug Token
         run: |
           if [ -z "$TF_TOKEN_app_terraform_io" ]; then
@@ -54,17 +56,20 @@ jobs:
           else
             echo "✅ Token is set."
           fi
-
-
-      # 5. Terraform Init
+  
+ # 6. Terraform Init (disable interactive prompts)
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -input=false
 
-      # # 6. Select or create workspace (prefix mode)
-      # - name: Select Workspace
-      #   run: |
-      #     terraform workspace select ${{ github.event.inputs.environment }} \
-      #     || terraform workspace new ${{ github.event.inputs.environment }}
+ # 7. Debug Backend Configuration
+      - name: Show Backend Config
+        run: |
+          echo "Checking backend.tf:"
+          cat backend.tf || echo "backend.tf not found!"
+          echo "Current directory:"
+          pwd
+          echo "Files in directory:"
+          ls -la
 
       # 7. Terraform Validate
       - name: Terraform Validate
@@ -88,3 +93,15 @@ jobs:
       - name: Terraform Apply
         if: github.event.inputs.apply == 'true'
         run: terraform apply -auto-approve tfplan
+
+# # 4. Show selected workspace
+      # - name: Show Selected Workspace
+      #   run:  |
+      #      echo "Using Terraform Cloud workspace: $TF_WORKSPACE"
+
+
+      # # 6. Select or create workspace (prefix mode)
+      # - name: Select Workspace
+      #   run: |
+      #     terraform workspace select ${{ github.event.inputs.environment }} \
+      #     || terraform workspace new ${{ github.event.inputs.environment }}
