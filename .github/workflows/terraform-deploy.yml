@@ -44,8 +44,16 @@ jobs:
       - name: Terraform Format 
         run: terraform fmt -recursive
 
-      - name: Debug Env
-        run: env | grep TF_TOKEN
+      
+      - name: Debug Token
+        run: |
+          if [ -z "$TF_TOKEN_app_terraform_io" ]; then
+            echo "❌ Token is missing!"
+            exit 1
+          else
+            echo "✅ Token is set."
+          fi
+
 
       # 5. Terraform Init
       - name: Terraform Init
