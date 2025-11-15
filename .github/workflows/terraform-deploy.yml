@@ -60,11 +60,11 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      # 6. Select or create workspace (prefix mode)
-      - name: Select Workspace
-        run: |
-          terraform workspace select ${{ github.event.inputs.environment }} \
-          || terraform workspace new ${{ github.event.inputs.environment }}
+      # # 6. Select or create workspace (prefix mode)
+      # - name: Select Workspace
+      #   run: |
+      #     terraform workspace select ${{ github.event.inputs.environment }} \
+      #     || terraform workspace new ${{ github.event.inputs.environment }}
 
       # 7. Terraform Validate
       - name: Terraform Validate
