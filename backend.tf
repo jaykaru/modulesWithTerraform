@@ -1,9 +1,9 @@
 terraform {
   backend "remote" {
     hostname     = "app.terraform.io"
-    organization = "JayKaruProject"
+    organization = "JayKaruProject" # Must match exactly
     workspaces {
-      prefix = "env-" # Workspaces will be env-dev, env-prod, etc.
+      prefix = "env-"
     }
   }
 }
