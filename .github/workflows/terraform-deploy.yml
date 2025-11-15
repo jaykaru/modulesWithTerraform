@@ -1,0 +1,53 @@
+name: Terraform Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Choose environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_WORKSPACE: env-${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout Repository 
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform 
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Show Selected Workspace
+        run: $TF_WORKSPACE" # Display the selected workspace
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan \
+          -var-file=environments/globals.tfvars \
+          -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
+          -out=tfplan
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-plan-${{ github.event.inputs.environment }}
+          path: tfplan
