@@ -35,8 +35,9 @@ jobs:
         run: terraform validate
 
       - name: Show Selected Workspace
-        run: $TF_WORKSPACE" # Display the selected workspace
-
+        run:  |
+           echo "Using Terraform Cloud workspace: $TF_WORKSPACE"
+           
       - name: Terraform Init
         run: terraform init
 
