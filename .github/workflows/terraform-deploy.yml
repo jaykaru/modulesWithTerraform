@@ -23,7 +23,7 @@ jobs:
     environment: dev   # This matches your GitHub Actions environment
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
-      TF_WORKSPACE: env-${{ github.event.inputs.environment }}
+      TF_WORKSPACE: ${{ github.event.inputs.environment }}
 
     steps:
       # 1. Checkout code
