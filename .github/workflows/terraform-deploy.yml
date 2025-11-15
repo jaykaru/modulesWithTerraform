@@ -64,10 +64,15 @@ jobs:
           -var-file=environments/globals.tfvars \
           -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
           -out=tfplan
-          
+
       # 9. Upload Plan Artifact
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ github.event.inputs.environment }}
           path: tfplan
+
+      # 10. Terraform Apply (only if checkbox is true)
+      - name: Terraform Apply
+        if: github.event.inputs.apply == 'true'
+        run: terraform apply -auto-approve tfplan
