@@ -37,7 +37,7 @@ jobs:
       - name: Show Selected Workspace
         run:  |
            echo "Using Terraform Cloud workspace: $TF_WORKSPACE"
-           
+
       - name: Terraform Init
         run: terraform init
 
@@ -48,7 +48,7 @@ jobs:
           -out=tfplan
 
       - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ github.event.inputs.environment }}
           path: tfplan
