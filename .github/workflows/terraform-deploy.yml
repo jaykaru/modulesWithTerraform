@@ -11,6 +11,11 @@ on:
           - dev
           - staging
           - prod
+      apply:
+        description: "Apply changes after plan"
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   deploy:
@@ -20,33 +25,47 @@ jobs:
       TF_WORKSPACE: env-${{ github.event.inputs.environment }}
 
     steps:
+      # 1. Checkout code
       - name: Checkout Repository 
         uses: actions/checkout@v3
 
+      # 2. Setup Terraform
       - name: Setup Terraform 
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.7
 
-      - name: Terraform Format Check
-        run: terraform fmt -check
-
-      - name: Terraform Validate
-        run: terraform validate
-
+      # 3. Show selected workspace
       - name: Show Selected Workspace
         run:  |
            echo "Using Terraform Cloud workspace: $TF_WORKSPACE"
 
+      # 4. Terraform Format Check
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      # 5. Terraform Init
       - name: Terraform Init
         run: terraform init
 
+      # 6. Select or create workspace (prefix mode)
+      - name: Select Workspace
+        run: |
+          terraform workspace select ${{ github.event.inputs.environment }} \
+          || terraform workspace new ${{ github.event.inputs.environment }}
+
+      # 7. Terraform Validate
+      - name: Terraform Validate
+        run: terraform validate
+
+      # 8. Terraform Plan
       - name: Terraform Plan
         run: terraform plan \
           -var-file=environments/globals.tfvars \
           -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
           -out=tfplan
-
+          
+      # 9. Upload Plan Artifact
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
         with:
