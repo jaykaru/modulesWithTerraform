@@ -2,25 +2,36 @@
 # -------------------------
 # Terraform
 # -------------------------
-# Terraform state file that tracks the current state of your infrastructure
+# Local .terraform directories Local cache, not needed in repo
+**/.terraform/*
+.terraform.lock.hcl
+
+# Terraform state files  Contain resource IDs and sometimes secrets
 *.tfstate
-# Backup of the Terraform state file
-*.tfstate.backup
-# Directory where Terraform stores plugins and modules.
-.terraform/
-# Variables files often contain senstive data such as passwords or API keys
-*.tfvars
-*.tfvars.json
-# Log file created if Terraform crashes
+*.tfstate.*
+
+# Crash logs
 crash.log
 
-# Override configuration files.
-# override.tf
-# override.tf.json
+# Variable files (if they contain secrets)
+# *.tfvars
+*.tfvars.json
 
-# Pattern for any override files.
-# *_override.tf
-# *_override.tf.json
+# Sensitive key files Must never be committed.
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+
+# Backend override (dynamic config) Dynamic file created in workflow, should not be committed
+backend_override.tf
+
+# Plan files Generated during CI/CD, not needed in repo
+*.plan
+tfplan
+
+# Ignore any temporary files
+*.tmp
 
 
 # -------------------------
@@ -29,10 +40,6 @@ crash.log
 # AWS CLI configuration folder (contains credentials)
 .aws/
 
-# Private keys and certificates used for SSH or SSL
-*.pem
-*.key
-*.crt
 
 
 # -------------------------
