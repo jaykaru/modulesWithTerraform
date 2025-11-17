@@ -23,7 +23,7 @@ jobs:
     environment: ${{ github.event.inputs.environment }} # Dynamic!
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
-      TF_WORKSPACE: env-${{ github.event.inputs.environment }} # Dynamic workspace selection
+      # TF_WORKSPACE: env-${{ github.event.inputs.environment }} # Dynamic workspace selection
 
     steps:
       # 1. Checkout code
@@ -97,7 +97,7 @@ jobs:
 # After init, you explicitly select the correct remote workspace
       - name: Terraform Init
         run: |
-          terraform init  -input=false -upgrade 
+          terraform init  -input=false -upgrade -reconfigure
 
       # # 10. Select Remote Workspace explicitly
       # - name: Select Workspace
