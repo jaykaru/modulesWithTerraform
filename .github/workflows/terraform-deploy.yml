@@ -75,12 +75,11 @@ jobs:
           echo "env-${{ github.event.inputs.environment }}" > .terraform/environment
 
       # 9. Terraform Init (disable interactive prompts)
+#       -reconfigure prevents Terraform from failing during init due to workspace validation.
+# After init, you explicitly select the correct remote workspace
       - name: Terraform Init
         run: |
-          terraform init \
-            -input=false \
-            -upgrade \
-            # -backend-config="workspaces.name=${{ github.event.inputs.environment }}"
+          terraform init  -input=false -upgrade -reconfigure 
 
       # 10. Select Remote Workspace explicitly
       - name: Select Workspace
