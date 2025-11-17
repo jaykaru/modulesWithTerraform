@@ -70,7 +70,9 @@ jobs:
 
       # 8. prepare environment file
       - name: Prepare Workspace for Init
-        run: echo "env-${{ github.event.inputs.environment }}" > .terraform/environment
+        run: |
+          mkdir -p .terraform
+          echo "env-${{ github.event.inputs.environment }}" > .terraform/environment
 
       # 9. Terraform Init (disable interactive prompts)
       - name: Terraform Init
