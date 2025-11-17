@@ -97,7 +97,7 @@ jobs:
 # After init, you explicitly select the correct remote workspace
       - name: Terraform Init
         run: |
-          terraform init  -input=false -upgrade -reconfigure -migrate-state=false -force-copy
+          terraform init  -input=false -upgrade 
 
       # # 10. Select Remote Workspace explicitly
       # - name: Select Workspace
