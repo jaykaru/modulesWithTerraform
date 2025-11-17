@@ -57,6 +57,13 @@ jobs:
             echo "✅ Token is set."
           fi
 
+      # This will list all workspaces Terraform Cloud sees for your token. If env-dev is missing, the token or org is wrong.
+      - name: Debug Terraform Cloud Workspaces
+        run: |
+          curl \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces | jq '.data[].attributes.name'
+
       # 6. Terraform Init (disable interactive prompts)
       - name: Terraform Init
         run: |
