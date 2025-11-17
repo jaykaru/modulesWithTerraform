@@ -20,14 +20,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: dev   # This matches your GitHub Actions environment
+    environment: ${{ github.event.inputs.environment }} # Dynamic!
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
       TF_WORKSPACE: ${{ github.event.inputs.environment }}
 
     steps:
       # 1. Checkout code
-      - name: Checkout Repository 
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       # 2. Debug Environment Variables
@@ -38,13 +38,13 @@ jobs:
           echo "Token length: ${#TF_TOKEN_app_terraform_io}"
 
       # 3. Setup Terraform
-      - name: Setup Terraform 
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.7
+          terraform_version: 1.13.5
 
-      # 4. Terraform Format Check auto fix 
-      - name: Terraform Format 
+      # 4. Terraform Format Check auto fix
+      - name: Terraform Format
         run: terraform fmt -recursive
 
       # 5. Validate Token
@@ -56,12 +56,12 @@ jobs:
           else
             echo "✅ Token is set."
           fi
-  
- # 6. Terraform Init (disable interactive prompts)
-      - name: Terraform Init
-        run: terraform init -input=false
 
- # 7. Debug Backend Configuration
+      # 6. Terraform Init (disable interactive prompts)
+      - name: Terraform Init
+        run: terraform init -input=false -upgrade
+
+      # 7. Debug Backend Configuration
       - name: Show Backend Config
         run: |
           echo "Checking backend.tf:"
@@ -71,37 +71,25 @@ jobs:
           echo "Files in directory:"
           ls -la
 
-      # 7. Terraform Validate
+      # 8. Terraform Validate
       - name: Terraform Validate
         run: terraform validate
 
-      # 8. Terraform Plan
+      # 9. Terraform Plan
       - name: Terraform Plan
         run: terraform plan \
           -var-file=environments/globals.tfvars \
           -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
           -out=tfplan
 
-      # 9. Upload Plan Artifact
+      # 10. Upload Plan Artifact
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ github.event.inputs.environment }}
           path: tfplan
 
-      # 10. Terraform Apply (only if checkbox is true)
+      # 11. Terraform Apply (only if checkbox is true)
       - name: Terraform Apply
         if: github.event.inputs.apply == 'true'
         run: terraform apply -auto-approve tfplan
-
-# # 4. Show selected workspace
-      # - name: Show Selected Workspace
-      #   run:  |
-      #      echo "Using Terraform Cloud workspace: $TF_WORKSPACE"
-
-
-      # # 6. Select or create workspace (prefix mode)
-      # - name: Select Workspace
-      #   run: |
-      #     terraform workspace select ${{ github.event.inputs.environment }} \
-      #     || terraform workspace new ${{ github.event.inputs.environment }}
