@@ -23,7 +23,7 @@ jobs:
     environment: ${{ github.event.inputs.environment }} # Dynamic!
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
-      TF_WORKSPACE: ${{ github.event.inputs.environment }}
+      TF_WORKSPACE: env-${{ github.event.inputs.environment }} # Dynamic workspace selection
 
     steps:
       # 1. Checkout code
@@ -63,7 +63,7 @@ jobs:
           terraform init \
             -input=false \
             -upgrade \
-            -backend-config="workspaces.name=${{ github.event.inputs.environment }}"
+            # -backend-config="workspaces.name=${{ github.event.inputs.environment }}"
 
       # 7. Debug Backend Configuration
       - name: Show Backend Config

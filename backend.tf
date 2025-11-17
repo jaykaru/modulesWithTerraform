@@ -3,7 +3,7 @@ terraform {
     hostname     = "app.terraform.io"
     organization = "JayKaruProject" # Must match exactly
   workspaces {
-      name = "dev" 
+      prefix = "env-" # Dynamic workspace selection
     }
   }
 }
