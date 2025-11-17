@@ -79,39 +79,11 @@ jobs:
             }
           }
           EOF
-          echo "✅ Created backend_override.tf for env-${{ github.event.inputs.environment }}"
+          echo "Created backend_override.tf for env-${{ github.event.inputs.environment }}"
 
-
-      # # 7. Set TF_WORKSPACE and
-      # - name: Set TF_WORKSPACE
-      #   run: echo "TF_WORKSPACE=env-${{ github.event.inputs.environment }}" >> $GITHUB_ENV
-
-      # # 8. prepare environment file
-      # - name: Prepare Workspace for Init
-      #   run: |
-      #     mkdir -p .terraform
-      #     echo "env-${{ github.event.inputs.environment }}" > .terraform/environment
-
-      # 9. Terraform Init (disable interactive prompts)
-#       -reconfigure prevents Terraform from failing during init due to workspace validation.
-# After init, you explicitly select the correct remote workspace
       - name: Terraform Init
         run: |
           terraform init  -input=false -upgrade -reconfigure
-
-      # # 10. Select Remote Workspace explicitly
-      # - name: Select Workspace
-      #   run: terraform workspace select $TF_WORKSPACE || echo "Workspace already selected"
-
-      # # 11. Debug Backend Configuration
-      # - name: Show Backend Config
-      #   run: |
-      #     echo "Checking backend.tf:"
-      #     cat backend.tf || echo "backend.tf not found!"
-      #     echo "Current directory:"
-      #     pwd
-      #     echo "Files in directory:"
-      #     ls -la
 
       # 12. Terraform Validate
       - name: Terraform Validate
@@ -119,7 +91,8 @@ jobs:
 
       # 13. Terraform Plan
       - name: Terraform Plan
-        run: terraform plan \
+        run: | 
+          terraform plan \
           -var-file=environments/globals.tfvars \
           -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
           -out=tfplan
