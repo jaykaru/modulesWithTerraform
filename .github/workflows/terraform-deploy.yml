@@ -59,7 +59,11 @@ jobs:
 
       # 6. Terraform Init (disable interactive prompts)
       - name: Terraform Init
-        run: terraform init -input=false -upgrade
+        run: |
+          terraform init \
+            -input=false \
+            -upgrade \
+            -backend-config="workspaces.name=${{ github.event.inputs.environment }}"
 
       # 7. Debug Backend Configuration
       - name: Show Backend Config
