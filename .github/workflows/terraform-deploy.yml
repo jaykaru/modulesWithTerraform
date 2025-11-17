@@ -64,6 +64,9 @@ jobs:
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
             https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces | jq '.data[].attributes.name'
 
+      - name: Set TF_WORKSPACE
+        run: echo "TF_WORKSPACE=env-${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+
       # 6. Terraform Init (disable interactive prompts)
       - name: Terraform Init
         run: |
