@@ -89,7 +89,23 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # 13. Terraform Plan
+      
+      # 13 Debug Step: Check tfvars files
+      - name: Debug tfvars Files
+        run: |
+          echo "Checking tfvars files..."
+          ls -R environments || { echo "❌ environments directory not found"; exit 1; }
+          if [ ! -f environments/globals.tfvars ]; then
+            echo "❌ globals.tfvars missing!"
+            exit 1
+          fi
+          if [ ! -f environments/${{ github.event.inputs.environment }}.tfvars ]; then
+            echo "❌ ${github.event.inputs.environment}.tfvars missing!"
+            exit 1
+          fi
+          echo "All tfvars files are present"
+
+      # 14. Terraform Plan
       - name: Terraform Plan
         run: | 
           terraform plan \
@@ -97,14 +113,14 @@ jobs:
           -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
           -out=tfplan
 
-      # 14. Upload Plan Artifact
+      # 15. Upload Plan Artifact
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ github.event.inputs.environment }}
           path: tfplan
 
-      # 15. Terraform Apply (only if checkbox is true)
+      # 16. Terraform Apply (only if checkbox is true)
       - name: Terraform Apply
         if: github.event.inputs.apply == 'true'
         run: terraform apply -auto-approve tfplan
