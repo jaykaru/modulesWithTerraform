@@ -22,11 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }} # Dynamic!
     env:
+      # Terraform Cloud token
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
+      # AWS credentials from GitHub Secrets
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-
 
     steps:
       # 1. Checkout code
@@ -37,7 +38,8 @@ jobs:
       - name: Debug Environment Variables
         run: |
           echo "Selected environment: ${{ github.event.inputs.environment }}"
-          echo "Terraform Cloud Workspace: $TF_WORKSPACE"
+          echo "Terraform Cloud Workspace: env-${{ github.event.inputs.environment }}"
+          echo "AWS Region: $AWS_DEFAULT_REGION"
           echo "Token length: ${#TF_TOKEN_app_terraform_io}"
 
       # 3. Setup Terraform
@@ -46,11 +48,7 @@ jobs:
         with:
           terraform_version: 1.13.5
 
-      # 4. Terraform Format Check auto fix
-      - name: Terraform Format
-        run: terraform fmt -recursive
-
-      # 5. Validate Token
+      # 4. Validate Token
       - name: Debug Token
         run: |
           if [ -z "$TF_TOKEN_app_terraform_io" ]; then
@@ -60,6 +58,18 @@ jobs:
             echo "✅ Token is set."
           fi
 
+      
+      # 5. Validate AWS Credentials
+      - name: Validate AWS Credentials
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "❌ AWS credentials are missing!"
+            exit 1
+          else
+            echo "✅ AWS credentials are set."
+          fi
+
+
       #6. This will list all workspaces Terraform Cloud sees for your token. If env-dev is missing, the token or org is wrong.
       - name: Debug Terraform Cloud Workspaces
         run: |
@@ -68,7 +78,7 @@ jobs:
             https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces | jq '.data[].attributes.name'
 
       
-# 7. Create Dynamic Backend Config
+      # 7. Create Dynamic Backend Config
       - name: Create Backend Config
         run: |
           cat > backend_override.tf <<EOF
@@ -84,16 +94,26 @@ jobs:
           EOF
           echo "Created backend_override.tf for env-${{ github.event.inputs.environment }}"
 
+      
+      # 8. Clean Terraform Metadata
+      - name: Clean Terraform Metadata
+        run: rm -rf .terraform .terraform.lock.hcl
+
+      # 9. Terraform Init
       - name: Terraform Init
         run: |
           terraform init  -input=false -upgrade -reconfigure
 
-      # 12. Terraform Validate
+      # 10. Terraform Format Check auto fix
+      - name: Terraform Format
+        run: terraform fmt -recursive
+
+      # 11. Terraform Validate
       - name: Terraform Validate
         run: terraform validate
 
       
-      # 13 Debug Step: Check tfvars files
+      # 12 Debug Step: Check tfvars files
       - name: Debug tfvars Files
         run: |
           echo "Checking tfvars files..."
@@ -108,7 +128,7 @@ jobs:
           fi
           echo "All tfvars files are present"
 
-      # 14. Terraform Plan
+      # 13. Terraform Plan
       - name: Terraform Plan
         run: | 
           terraform plan \
@@ -116,14 +136,14 @@ jobs:
           -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
           -out=tfplan
 
-      # 15. Upload Plan Artifact
+      # 14. Upload Plan Artifact
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ github.event.inputs.environment }}
           path: tfplan
 
-      # 16. Terraform Apply (only if checkbox is true)
+      # 15. Terraform Apply (only if checkbox is true)
       - name: Terraform Apply
         if: github.event.inputs.apply == 'true'
         run: terraform apply -auto-approve tfplan
