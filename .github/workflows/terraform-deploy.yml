@@ -134,6 +134,7 @@ jobs:
           terraform plan \
           -var-file=environments/globals.tfvars \
           -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
+          -var environment_name=${{ github.event.inputs.environment }} \
           -out=tfplan
 
       # 14. Upload Plan Artifact
