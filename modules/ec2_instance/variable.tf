@@ -30,19 +30,19 @@ variable "key_pair_name" {
   type        = string
 }
 // Uploaded to cloud, injected to EC2 instance
-variable "public_key_path" {
-  description = "The path to the public key file"
-  type        = string
-}
+# variable "public_key_path" {
+#   description = "The path to the public key file"
+#   type        = string
+# }
 # variable "public_key" {
 #   type = string
 # }
 
 // Used by you to SSH into the instance
-variable "private_key_path" {
-  description = "The path to the private key file"
-  type        = string
-}
+# variable "private_key_path" {
+#   description = "The path to the private key file"
+#   type        = string
+# }
 # variable "private_key" {
 #   description = "The private key content to SSH into the instance"
 #   type        = string
