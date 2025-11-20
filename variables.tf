@@ -60,10 +60,10 @@ variable "key_pair_name" {
   type        = string
 }
 
-variable "public_key_path" {
-  description = "The path to the public key file"
-  type        = string
-}
+# variable "public_key_path" {
+#   description = "The path to the public key file"
+#   type        = string
+# }
 
 # variable "public_key" {
 #   description = "The public key content to be injected to the EC2 instance"
@@ -72,15 +72,25 @@ variable "public_key_path" {
 
 // used by you to SSH into the instance
 // SSH matches your private key to the public key injected to EC2 instance
-variable "private_key_path" {
-  description = "The path to the private key file"
-  type        = string
-  default     = "~/.ssh/id_rsa"
-}
+# variable "private_key_path" {
+#   description = "The path to the private key file"
+#   type        = string
+#   default     = "~/.ssh/id_rsa"
+# }
 # variable "private_key" {
 #   description = "The private key content to SSH into the instance"
 #   type        = string
 # }
+
+variable "script_path" {
+  type        = string
+  description = "Path to the app.py script template"
+}
+
+variable "environment_name" {
+  type        = string
+  description = "Environment name (e.g., dev, stage, prod)"
+}
 variable "ami_value" {
   description = "The AMI to use for the instance"
 }
