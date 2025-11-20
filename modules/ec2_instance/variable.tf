@@ -51,6 +51,18 @@ variable "ssh_user_ubuntu" {
   description = "SSH username for EC2 instance"
   type        = string
 }
+
+
+variable "script_path" {
+  type        = string
+  description = "Path to the app.py script template"
+}
+
+variable "environment_name" {
+  type        = string
+  description = "Environment name (e.g., dev, stage, prod)"
+}
+
 ////////////////////////////////////////////
 
 # if you don’t output from networking, you cannot use it in root or EC2 module. Outputs are the only way to share resource IDs between modules.
