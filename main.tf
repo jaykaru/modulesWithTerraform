@@ -11,6 +11,9 @@ module "ec2_instance" {
   sg_ids                 = [module.networking.Ossh_sg_id]
   global_tags            = var.global_tags
   instance_webserver_tag = var.instance_webserver_tag
+  script_path            = "${path.module}/scripts/app.py"
+  environment_name       = terraform.workspace
+
 }
 module "networking" {
   source                  = "./modules/networking"
