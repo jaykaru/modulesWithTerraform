@@ -83,22 +83,6 @@ jobs:
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
             https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces | jq '.data[].attributes.name'
 
-     
-# ✅ NEW STEP: Check and Unlock Terraform Cloud Workspace
-      - name: Check and Unlock Terraform Cloud Workspace
-        run: |
-          LOCK_ID=$(curl --silent \
-            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-            https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }}/current-state-version \
-            | jq -r '.data.attributes.lock_id // empty')
-
-          if [ -n "$LOCK_ID" ]; then
-            echo "⚠️ Lock detected: $LOCK_ID. Attempting force unlock..."
-            terraform force-unlock $LOCK_ID || echo "Manual unlock may be required in Terraform Cloud UI."
-          else
-            echo "✅ No lock detected."
-          fi
-
       
       # 7. Create Dynamic Backend Config
       - name: Create Backend Config
@@ -149,15 +133,43 @@ jobs:
             exit 1
           fi
           echo "All tfvars files are present"
+      
+      
+      # Unlock Before Plan
+      - name: Safe Unlock Before Plan
+        run: |
+          LOCK_ID=$(curl --silent \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }}/current-state-version \
+            | jq -r '.data.attributes.lock_id // empty')
+
+          if [ -n "$LOCK_ID" ]; then
+            echo "⚠️ Lock detected before plan: $LOCK_ID. Unlocking..."
+            terraform force-unlock $LOCK_ID || echo "Manual unlock may be required."
+          else
+            echo  "No lock detected before plan."
+          fi
+
 
       # 13. Terraform Plan
       - name: Terraform Plan
-        run: | 
-          terraform plan \
-          -var-file=environments/globals.tfvars \
-          -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
-          -var environment_name=${{ github.event.inputs.environment }} \
-          -out=tfplan
+        run: |
+          for i in 1 2 3; do
+            terraform plan \
+            -var-file=environments/globals.tfvars \
+            -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
+            -var environment_name=${{ github.event.inputs.environment }} \
+            -out=tfplan && break || {
+              echo "Plan failed due to lock. Retrying after unlock..."
+              LOCK_ID=$(curl --silent \
+                --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+                https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }}/current-state-version \
+                | jq -r '.data.attributes.lock_id // empty')
+              [ -n "$LOCK_ID" ] && terraform force-unlock $LOCK_ID
+              sleep 10
+            }
+          done
+
 
       # 14. Upload Plan Artifact
       - name: Upload Plan Artifact
