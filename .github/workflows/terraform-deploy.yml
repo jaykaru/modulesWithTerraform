@@ -152,28 +152,34 @@ jobs:
 
 
       # 13. Terraform Plan
-      - name: Terraform Plan
+      
+      - name: Terraform Plan with Unlock and Retry
         run: |
+          success=false
           for i in 1 2 3; do
-            echo "Attempt $i: Checking and unlocking before plan..."
+            echo "Attempt $i: Unlocking and waiting before plan..."
             LOCK_ID=$(curl --silent \
               --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
               https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }}/current-state-version \
               | jq -r '.data.attributes.lock_id // empty')
             [ -n "$LOCK_ID" ] && terraform force-unlock $LOCK_ID
 
+            echo "Waiting 90 seconds before retry..."
+            sleep 90
+
             terraform plan \
-              -lock-timeout=60s \
+              -lock-timeout=120s \
               -var-file=environments/globals.tfvars \
               -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
               -var environment_name=${{ github.event.inputs.environment }} \
-              -out=tfplan && break || {
-                echo "Plan failed due to lock or error. Retrying after 30s..."
-                sleep 30
-              }
+              -out=tfplan && { success=true; break; } || echo "Plan failed."
           done
 
-
+          if [ "$success" = false ]; then
+            echo "❌ Plan failed after 3 attempts."
+            [ -n "$SLACK_WEBHOOK_URL" ] && curl -X POST -H 'Content-type: application/json' --data '{"text":"Terraform Plan failed for env-${{ github.event.inputs.environment }} after 3 retries due to lock issues."}' $SLACK_WEBHOOK_URL
+            exit 1
+          fi
 
       # 14. Upload Plan Artifact
       - name: Upload Plan Artifact
