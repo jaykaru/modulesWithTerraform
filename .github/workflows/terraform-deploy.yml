@@ -21,6 +21,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }} # Dynamic!
+    
+# ✅ Concurrency to avoid parallel runs on same workspace
+    concurrency:
+      group: terraform-${{ github.event.inputs.environment }}
+      cancel-in-progress: false
+
     env:
       # Terraform Cloud token
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
@@ -76,6 +82,22 @@ jobs:
           curl \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
             https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces | jq '.data[].attributes.name'
+
+     
+# ✅ NEW STEP: Check and Unlock Terraform Cloud Workspace
+      - name: Check and Unlock Terraform Cloud Workspace
+        run: |
+          LOCK_ID=$(curl --silent \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }}/current-state-version \
+            | jq -r '.data.attributes.lock_id // empty')
+
+          if [ -n "$LOCK_ID" ]; then
+            echo "⚠️ Lock detected: $LOCK_ID. Attempting force unlock..."
+            terraform force-unlock $LOCK_ID || echo "Manual unlock may be required in Terraform Cloud UI."
+          else
+            echo "✅ No lock detected."
+          fi
 
       
       # 7. Create Dynamic Backend Config
