@@ -1,5 +1,5 @@
 output "instance_id" {
-  value       = moldule.ec2_instance.instance_id
+  value       = module.ec2_instance.instance_id
   description = "ID of the EC2 instance"
 }
 
