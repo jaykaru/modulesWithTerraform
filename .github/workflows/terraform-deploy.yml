@@ -155,20 +155,24 @@ jobs:
       - name: Terraform Plan
         run: |
           for i in 1 2 3; do
+            echo "Attempt $i: Checking and unlocking before plan..."
+            LOCK_ID=$(curl --silent \
+              --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+              https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }}/current-state-version \
+              | jq -r '.data.attributes.lock_id // empty')
+            [ -n "$LOCK_ID" ] && terraform force-unlock $LOCK_ID
+
             terraform plan \
-            -var-file=environments/globals.tfvars \
-            -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
-            -var environment_name=${{ github.event.inputs.environment }} \
-            -out=tfplan && break || {
-              echo "Plan failed due to lock. Retrying after unlock..."
-              LOCK_ID=$(curl --silent \
-                --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-                https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }}/current-state-version \
-                | jq -r '.data.attributes.lock_id // empty')
-              [ -n "$LOCK_ID" ] && terraform force-unlock $LOCK_ID
-              sleep 10
-            }
+              -lock-timeout=60s \
+              -var-file=environments/globals.tfvars \
+              -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
+              -var environment_name=${{ github.event.inputs.environment }} \
+              -out=tfplan && break || {
+                echo "Plan failed due to lock or error. Retrying after 30s..."
+                sleep 30
+              }
           done
+
 
 
       # 14. Upload Plan Artifact
