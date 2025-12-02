@@ -8,20 +8,20 @@ route_cidr_block_value  = "0.0.0.0/0"
 availability_zone_name  = "eu-west-2a"
 map_public_ip_on_launch = true
 vpc_tag = {
-  Name = "module_demo_vpc_dev"
-  Env  = "Dev"
+  Name = "module_demo_vpc_stage"
+  Env  = "Stage"
 }
 subnet_tag = {
-  Name = "module_demo_subnet_dev"
-  Env  = "Dev"
+  Name = "module_demo_subnet_stage"
+  Env  = "Stage"
 }
 rt1_tag = {
-  Name = "module_demo_rt1_dev"
-  Env  = "Dev"
+  Name = "module_demo_rt1_stage"
+  Env  = "Stage"
 }
 igw_name_tag = {
-  Name = "my-igw_dev"
-  Env  = "Dev"
+  Name = "my-igw_stage"
+  Env  = "Stage"
 }
 
 
@@ -29,25 +29,25 @@ igw_name_tag = {
 # EC2 Instance Configuration
 # -------------------------------
 ami_value = "ami-046c2381f11878233"
-# instance_type_value = "t3.micro" # mot needed as we have default in variable.tf as per environment 
+instance_type_value = "t3.micro"
 ssh_user_ubuntu = "ubuntu"
 instance_webserver_tag = {
-  Name = "web-serve-dev"
-  Env  = "Dev"
+  Name = "web-server-stage"
+  Env  = "Stage"
 }
+environment_name = "stage"
 
 # -------------------------------
 # Key Pair
 # -------------------------------
-key_pair_name    = "jkvpclab-keypair"
-# key_pair_name    = "tf-key"
+key_pair_name    = "jkvpclab-keyPair"
 # public_key_path  = "~/.ssh/id_rsa.pub"
 # private_key_path = "~/.ssh/id_rsa"
 
 # -------------------------------
 # Security Group
 # -------------------------------
-security_group_name = "web-server-dev-sg"
+security_group_name = "web-server-stage-sg"
 security_group_rules = [
   {
     type        = "ingress"
@@ -75,7 +75,7 @@ security_group_rules = [
   }
 ]
 security_group_tag = {
-  Name = "webserver-dev-sg"
-  Env  = "Dev"
+  Name = "webserver-stage-sg"
+  Env  = "Stage"
 }
 

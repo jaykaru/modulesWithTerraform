@@ -1,4 +1,4 @@
-name: Terraform Deploy
+name: Terraform Pipeline
 
 on:
   workflow_dispatch:
@@ -17,10 +17,11 @@ on:
         type: choice
         options:
           - apply
-          - destory
+          - destroy
 
 jobs:
   terraform:
+    name: Terraform ${{ github.event.inputs.action }}
     runs-on: ubuntu-latest
     env:
       TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
@@ -39,7 +40,7 @@ jobs:
 
       - name: Set Terraform Workspace
         run: |
-          # Use workflow_dispatch input or auto-derive from branch
+          # Use workflow_dispatch input or auto-drive from branch
           if [ -n "${{ github.event.inputs.env }}" ]; then
             echo "TF_WORKSPACE=${{ github.event.inputs.env }}" >> $GITHUB_ENV
           else
@@ -56,20 +57,33 @@ jobs:
         run: |
           terraform init -reconfigure
 
+      
       - name: Terraform Plan
         run: |
           if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
-            terraform plan -destroy
+            terraform plan \
+              -destroy \
+              -var-file=environments/globals.auto.tfvars \
+              -var-file=environments/${{ github.event.inputs.env }}.auto.tfvars
           else
-            terraform plan
+            terraform plan \
+              -var-file=environments/globals.auto.tfvars \
+              -var-file=environments/${{ github.event.inputs.env }}.auto.tfvars
           fi
 
       - name: Terraform Apply / Destroy
         run: |
           if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
-            terraform destroy -auto-approve
+            terraform destroy \
+              -auto-approve \
+              -var-file=environments/globals.auto.tfvars \
+              -var-file=environments/${{ github.event.inputs.env }}.auto.tfvars
           else
-            terraform apply -auto-approve
+            terraform apply \
+              -auto-approve \
+              -var-file=environments/globals.auto.tfvars \
+              -var-file=environments/${{ github.event.inputs.env }}.auto.tfvars
           fi
+
 
     
