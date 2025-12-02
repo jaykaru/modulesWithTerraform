@@ -35,6 +35,7 @@ instance_webserver_tag = {
   Name = "web-serve-dev"
   Env  = "Dev"
 }
+environment_name = "dev"
 
 # -------------------------------
 # Key Pair
