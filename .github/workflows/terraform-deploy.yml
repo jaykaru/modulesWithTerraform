@@ -138,7 +138,7 @@ jobs:
           echo "All tfvars files are present"
       
       
-      # Orphaned Runs Cleanup
+      # ✅ Orphaned Runs Cleanup
       - name: Cancel Orphaned Runs
         run: |
           echo "🔍 Checking for orphaned runs..."
@@ -194,7 +194,7 @@ jobs:
             --request DELETE \
             https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock >/dev/null
 
-      # ✅ Pre-Plan Lock Wait
+      # ✅ Pre-Plan Lock Wait + Sleep
       - name: Wait for Lock Clearance Before Plan
         run: |
           echo "🔍 Waiting for lock clearance before plan..."
@@ -211,7 +211,8 @@ jobs:
               | jq -r '.data.attributes.lock_id // empty')
 
             if [ -z "$LOCK_ID" ]; then
-              echo "✅ Lock cleared. Proceeding with plan."
+              echo "✅ Lock cleared. Waiting 30s before plan to allow Terraform Cloud to sync..."
+              sleep 30
               exit 0
             fi
 
@@ -226,17 +227,14 @@ jobs:
             ${{ secrets.SLACK_WEBHOOK_URL }}
           exit 1
 
-
- 
       # 9. Terraform Plan with Retry
-      
       - name: Terraform Plan with Retry
         run: |
           success=false
           for i in 1 2 3; do
             echo "🔄 Attempt $i: Running terraform plan..."
             terraform plan \
-              -lock-timeout=30s \
+              -lock-timeout=120s \
               -var-file=environments/globals.tfvars \
               -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
               -var environment_name=${{ github.event.inputs.environment }} \
