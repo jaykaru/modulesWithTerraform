@@ -85,6 +85,7 @@ variable "key_pair_name" {
 variable "script_path" {
   type        = string
   description = "Path to the app.py script template"
+  default = "scripts/app.py.tpl"
 }
 
 variable "environment_name" {
