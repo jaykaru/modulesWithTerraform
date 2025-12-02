@@ -40,7 +40,8 @@ environment_name = "dev"
 # -------------------------------
 # Key Pair
 # -------------------------------
-key_pair_name    = "jkvpclab-keypair"
+key_pair_name    = "jkvpclab-keyPair"
+
 # key_pair_name    = "tf-key"
 # public_key_path  = "~/.ssh/id_rsa.pub"
 # private_key_path = "~/.ssh/id_rsa"
