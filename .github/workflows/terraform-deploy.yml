@@ -230,16 +230,23 @@ jobs:
       # ✅ Force Unlock Before Plan
       - name: Force Unlock Workspace
         run: |
+          WORKSPACE_NAME="${TF_WORKSPACE_PREFIX}${{ github.event.inputs.environment }}"
+          echo "🔓 Forcing unlock for workspace $WORKSPACE_NAME..."
           WORKSPACE_ID=$(curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-            https://app.terraform.io/api/v2/organizations/$TF_CLOUD_ORGANIZATION/workspaces/${TF_WORKSPACE_PREFIX}${{ github.event.inputs.environment }} \
+            https://app.terraform.io/api/v2/organizations/$TF_CLOUD_ORGANIZATION/workspaces/$WORKSPACE_NAME \
             | jq -r '.data.id')
 
-          echo "🔓 Forcing unlock for workspace $WORKSPACE_ID..."
+          if [ -z "$WORKSPACE_ID" ] || [ "$WORKSPACE_ID" = "null" ]; then
+            echo "❌ Workspace ID not found. Check organization or workspace name."
+            exit 1
+          fi
+
           curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
             --request DELETE \
             https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock
+
 
       # 9. Terraform Plan with Retry
       - name: Terraform Plan with Retry and Fallback
