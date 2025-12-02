@@ -56,6 +56,12 @@ jobs:
         run: |
           terraform init -reconfigure
 
-
+      - name: Terraform Plan
+        run: |
+          if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
+            terraform plan -destroy
+          else
+            terraform plan
+          fi
 
     
