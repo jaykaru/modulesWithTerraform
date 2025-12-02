@@ -119,7 +119,10 @@ jobs:
             https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
             | jq -r '.data.id')
 
-          [ -z "$WORKSPACE_ID" ] && { echo "❌ Workspace not found"; exit 1; }
+          if [ -z "$WORKSPACE_ID" ]; then
+            echo "❌ Workspace not found"
+            exit 1
+          fi
 
           ACTIVE_RUNS=$(curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
@@ -129,19 +132,26 @@ jobs:
           if [ -n "$ACTIVE_RUNS" ]; then
             echo "⚠️ Orphaned runs detected: $ACTIVE_RUNS"
             for RUN_ID in $ACTIVE_RUNS; do
-              curl --silent \
+              RESPONSE=$(curl --silent \
                 --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
                 --header "Content-Type: application/vnd.api+json" \
                 --request POST \
-                "https://app.terraform.io/api/v2/runs/$RUN_ID/actions/cancel"
+                "https://app.terraform.io/api/v2/runs/$RUN_ID/actions/cancel")
+
+              if [[ "$RESPONSE" == *"errors"* ]]; then
+                echo "ℹ️ Could not cancel run $RUN_ID (likely already finished or invalid state)."
+              else
+                echo "✅ Run $RUN_ID canceled successfully."
+              fi
             done
-            echo "✅ All orphaned runs canceled."
+            echo "✅ Cancel attempts completed."
             [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
-              --data '{"text":"Cancelled orphaned Terraform runs for env-${{ github.event.inputs.environment }}."}' \
+              --data '{"text":"Checked and attempted to cancel orphaned Terraform runs for env-${{ github.event.inputs.environment }}."}' \
               ${{ secrets.SLACK_WEBHOOK_URL }}
           else
             echo "✅ No orphaned runs found."
           fi
+
 
       # 10. Terraform Format Check auto fix
       - name: Terraform Format
