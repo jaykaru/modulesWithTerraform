@@ -131,6 +131,7 @@ jobs:
             for RUN_ID in $ACTIVE_RUNS; do
               curl --silent \
                 --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+                --header "Content-Type: application/vnd.api+json" \
                 --request POST \
                 "https://app.terraform.io/api/v2/runs/$RUN_ID/actions/cancel"
             done
