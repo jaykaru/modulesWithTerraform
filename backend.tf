@@ -1,6 +1,6 @@
 terraform {
+  required_version = ">= 1.12.0"
   backend "remote" {
-    hostname     = "app.terraform.io"
     organization = "JayKaruProject" # Must match exactly
   workspaces {
       prefix = "env-" # Dynamic workspace selection
