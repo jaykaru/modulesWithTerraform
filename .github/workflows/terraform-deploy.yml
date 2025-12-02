@@ -1,4 +1,4 @@
-name: Terraform Deploy
+name: Terraform Pipeline
 
 on:
   workflow_dispatch:
@@ -21,6 +21,7 @@ on:
 
 jobs:
   terraform:
+    name: Terraform ${{ github.event.inputs.action }}
     runs-on: ubuntu-latest
     env:
       TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
