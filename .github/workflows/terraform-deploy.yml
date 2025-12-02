@@ -110,47 +110,7 @@ jobs:
         run: |
           terraform init  -input=false -upgrade -reconfigure
 
-     #. Detect and Cancel Active Runs
-      # - name: Detect and Cancel Orphaned Runs
-      #   run: |
-      #     echo "🔍 Checking for orphaned runs..."
-      #     WORKSPACE_ID=$(curl --silent \
-      #       --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-      #       https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
-      #       | jq -r '.data.id')
-
-      #     if [ -z "$WORKSPACE_ID" ]; then
-      #       echo "❌ Workspace not found"
-      #       exit 1
-      #     fi
-
-      #     ACTIVE_RUNS=$(curl --silent \
-      #       --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-      #       "https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/runs" \
-      #       | jq -r '.data[] | select(.attributes.status!="planned_and_finished" and .attributes.status!="applied") | .id')
-
-      #     if [ -n "$ACTIVE_RUNS" ]; then
-      #       echo "⚠️ Orphaned runs detected: $ACTIVE_RUNS"
-      #       for RUN_ID in $ACTIVE_RUNS; do
-      #         RESPONSE=$(curl --silent \
-      #           --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-      #           --header "Content-Type: application/vnd.api+json" \
-      #           --request POST \
-      #           "https://app.terraform.io/api/v2/runs/$RUN_ID/actions/cancel")
-
-      #         if [[ "$RESPONSE" == *"errors"* ]]; then
-      #           echo "ℹ️ Could not cancel run $RUN_ID (likely already finished or invalid state)."
-      #         else
-      #           echo "✅ Run $RUN_ID canceled successfully."
-      #         fi
-      #       done
-      #       echo "✅ Cancel attempts completed."
-      #       [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
-      #         --data '{"text":"Checked and attempted to cancel orphaned Terraform runs for env-${{ github.event.inputs.environment }}."}' \
-      #         ${{ secrets.SLACK_WEBHOOK_URL }}
-      #     else
-      #       echo "✅ No orphaned runs found."
-      #     fi
+     
 
 
       # 10. Terraform Format Check auto fix
@@ -178,9 +138,53 @@ jobs:
           echo "All tfvars files are present"
       
      
-# 7. Unlock Stale Lock
-      - name: Unlock Stale Lock
+
+# ✅ Combined Block: Orphaned Runs + Lock Handling
+      - name: Handle Orphaned Runs and Stale Lock
         run: |
+          set +e
+          echo "🔍 Checking for orphaned runs and stale lock..."
+
+          WORKSPACE_ID=$(curl --silent \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            https://app.terraform.io/api/v2/organizations/$TF_CLOUD_ORGANIZATION/workspaces/${TF_WORKSPACE_PREFIX}${{ github.event.inputs.environment }} \
+            | jq -r '.data.id')
+
+          if [ -z "$WORKSPACE_ID" ]; then
+            echo "❌ Workspace not found"
+            exit 1
+          fi
+
+          # 1. Cancel Orphaned Runs
+          ACTIVE_RUNS=$(curl --silent \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            "https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/runs" \
+            | jq -r '.data[] | select(.attributes.status!="planned_and_finished" and .attributes.status!="applied") | .id')
+
+          if [ -n "$ACTIVE_RUNS" ]; then
+            echo "⚠️ Orphaned runs detected: $ACTIVE_RUNS"
+            for RUN_ID in $ACTIVE_RUNS; do
+              RESPONSE=$(curl --silent \
+                --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+                --header "Content-Type: application/vnd.api+json" \
+                --request POST \
+                "https://app.terraform.io/api/v2/runs/$RUN_ID/actions/cancel")
+
+              if [[ "$RESPONSE" == *"errors"* ]]; then
+                echo "ℹ️ Could not cancel run $RUN_ID (likely already finished or invalid state)."
+              else
+                echo "✅ Run $RUN_ID canceled successfully."
+              fi
+            done
+            echo "✅ Cancel attempts completed."
+            [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"Checked and attempted to cancel orphaned Terraform runs for env-${{ github.event.inputs.environment }}."}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }}
+          else
+            echo "✅ No orphaned runs found."
+          fi
+
+          # 2. Unlock and Verify Lock Clearance
           echo "🔓 Attempting to remove stale lock..."
           UNLOCK_RESPONSE=$(curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
@@ -188,31 +192,33 @@ jobs:
             https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock)
 
           echo "Unlock API response: $UNLOCK_RESPONSE"
-          if [[ "$UNLOCK_RESPONSE" == *"errors"* ]]; then
-            echo "ℹ️ No stale lock found or unlock failed."
-          else
-            echo "✅ Lock removed successfully."
-            [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
-              --data '{"text":"Stale lock removed for env-${{ github.event.inputs.environment }} before plan."}' \
-              ${{ secrets.SLACK_WEBHOOK_URL }}
-          fi
 
-      # 8. Fail-Fast Lock Check
-      - name: Fail-Fast Lock Check
-        run: |
-          LOCK_ID=$(curl --silent \
-            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-            https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/current-state-version \
-            | jq -r '.data.attributes.lock_id // empty')
+          retries=5
+          while [ $retries -gt 0 ]; do
+            LOCK_ID=$(curl --silent \
+              --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+              https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/current-state-version \
+              | jq -r '.data.attributes.lock_id // empty')
 
-          if [ -n "$LOCK_ID" ]; then
-            echo "❌ Lock still active after cancel attempts. Failing fast."
-            [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
-              --data '{"text":"Lock still active for env-${{ github.event.inputs.environment}}. Manual intervention required."}' \
-              ${{ secrets.SLACK_WEBHOOK_URL }}
-            exit 1
-          fi
-          echo "✅ No lock detected. Proceeding."
+            if [ -z "$LOCK_ID" ]; then
+              echo "✅ No lock detected. Proceeding."
+              [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
+                --data '{"text":"Lock cleared for env-${{ github.event.inputs.environment }} before plan."}' \
+                ${{ secrets.SLACK_WEBHOOK_URL }}
+              exit 0
+            fi
+
+            echo "⚠️ Lock still active (ID: $LOCK_ID). Retrying in 10s..."
+            sleep 10
+            retries=$((retries-1))
+          done
+
+          echo "❌ Lock still active after retries. Manual intervention required."
+          [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"Lock still active for env-${{ github.event.inputs.environment }} after retries. Manual intervention required."}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+          exit 1
+
  
       # 9. Terraform Plan with Retry
       - name: Terraform Plan with Retry
