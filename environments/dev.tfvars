@@ -29,7 +29,7 @@ igw_name_tag = {
 # EC2 Instance Configuration
 # -------------------------------
 ami_value = "ami-046c2381f11878233"
-# instance_type_value = "t3.micro" # mot needed as we have default in variable.tf as per environment 
+instance_type_value = "t3.micro" # mot needed as we have default in variable.tf as per environment 
 ssh_user_ubuntu = "ubuntu"
 instance_webserver_tag = {
   Name = "web-serve-dev"
