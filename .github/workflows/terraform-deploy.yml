@@ -3,76 +3,73 @@ name: Terraform Deploy
 on:
   workflow_dispatch:
     inputs:
-      environment:
+      env:
         description: "Choose environment"
         required: true
         type: choice
         options:
           - dev
-          - staging
+          - stage
           - prod
-      apply:
-        description: "Apply changes after plan"
+      action:
+        description: "Choose action to perform"
         required: true
-        type: boolean
-        default: false
+        type: choice
+        options:
+          - apply
+          - destory
 
 jobs:
-  deploy:
+  terraform:
     runs-on: ubuntu-latest
     env:
-      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      TF_WORKSPACE: env-${{ github.event.inputs.environment }}
+      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
     steps:
-      # 1. Checkout code
-      - name: Checkout Repository 
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Setup Terraform
       - name: Setup Terraform 
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.7
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      # 3. Show selected workspace
-      - name: Show Selected Workspace
-        run:  |
-           echo "Using Terraform Cloud workspace: $TF_WORKSPACE"
-
-      # 4. Terraform Format Check
-      - name: Terraform Format Check
-        run: terraform fmt -check
-
-      # 5. Terraform Init
-      - name: Terraform Init
-        run: terraform init
-
-      # 6. Select or create workspace (prefix mode)
-      - name: Select Workspace
+      - name: Set Terraform Workspace
         run: |
-          terraform workspace select ${{ github.event.inputs.environment }} \
-          || terraform workspace new ${{ github.event.inputs.environment }}
+          # Use workflow_dispatch input or auto-derive from branch
+          if [ -n "${{ github.event.inputs.env }}" ]; then
+            echo "TF_WORKSPACE=${{ github.event.inputs.env }}" >> $GITHUB_ENV
+          else
+            BRANCH_NAME="${GITHUB_REF##*/}"
+            case "$BRANCH_NAME" in
+              features/dev*) echo "TF_WORKSPACE=dev" >> $GITHUB_ENV ;;
+              features/stage*) echo "TF_WORKSPACE=staging" >> $GITHUB_ENV ;;
+              features/prod*) echo "TF_WORKSPACE=prod" >> $GITHUB_ENV ;;
+              *) echo "TF_WORKSPACE=dev" >> $GITHUB_ENV ;;
+            esac
+          fi
+   
+      - name: Terraform Init
+        run: |
+          terraform init -reconfigure
 
-      # 7. Terraform Validate
-      - name: Terraform Validate
-        run: terraform validate
-
-      # 8. Terraform Plan
       - name: Terraform Plan
-        run: terraform plan \
-          -var-file=environments/globals.tfvars \
-          -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
-          -out=tfplan
+        run: |
+          if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
+            terraform plan -destroy
+          else
+            terraform plan
+          fi
 
-      # 9. Upload Plan Artifact
-      - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan-${{ github.event.inputs.environment }}
-          path: tfplan
+      - name: Terraform Apply / Destroy
+        run: |
+          if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
+            terraform destroy -auto-approve
+          else
+            terraform apply -auto-approve
+          fi
 
-      # 10. Terraform Apply (only if checkbox is true)
-      - name: Terraform Apply
-        if: github.event.inputs.apply == 'true'
-        run: terraform apply -auto-approve tfplan
+    

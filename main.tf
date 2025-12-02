@@ -4,13 +4,16 @@ module "ec2_instance" {
   ami_value              = var.ami_value
   instance_type_value    = var.instance_type_value
   key_pair_name          = var.key_pair_name
-  public_key_path        = var.public_key_path
-  private_key_path       = var.private_key_path
+  # public_key_path        = var.public_key_path
+  # private_key_path       = var.private_key_path
   ssh_user_ubuntu        = var.ssh_user_ubuntu
   sub_id                 = module.networking.Osubnet_id
   sg_ids                 = [module.networking.Ossh_sg_id]
   global_tags            = var.global_tags
   instance_webserver_tag = var.instance_webserver_tag
+  script_path            = "${path.module}/scripts/app.py"
+  environment_name       = terraform.workspace
+
 }
 module "networking" {
   source                  = "./modules/networking"
