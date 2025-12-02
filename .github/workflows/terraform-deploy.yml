@@ -39,7 +39,7 @@ jobs:
 
       - name: Set Terraform Workspace
         run: |
-          # Use workflow_dispatch input or auto-derive from branch
+          # Use workflow_dispatch input or auto-drive from branch
           if [ -n "${{ github.event.inputs.env }}" ]; then
             echo "TF_WORKSPACE=${{ github.event.inputs.env }}" >> $GITHUB_ENV
           else
@@ -63,11 +63,11 @@ jobs:
             terraform plan \
               -destroy \
               -var-file=environments/globals.auto.tfvars \
-              -var-file=environments/dev.auto.tfvars
+              -var-file=environments/${{ github.event.inputs.environment }}.auto.tfvars
           else
             terraform plan \
               -var-file=environments/globals.auto.tfvars \
-              -var-file=environments/dev.auto.tfvars
+              -var-file=environments/${{ github.event.inputs.environment }}.auto.tfvars
           fi
 
       - name: Terraform Apply / Destroy
@@ -76,12 +76,12 @@ jobs:
             terraform destroy \
               -auto-approve \
               -var-file=environments/globals.auto.tfvars \
-              -var-file=environments/dev.auto.tfvars
+              -var-file=environments/${{ github.event.inputs.environment }}.auto.tfvars
           else
             terraform apply \
               -auto-approve \
               -var-file=environments/globals.auto.tfvars \
-              -var-file=environments/dev.auto.tfvars
+              -var-file=environments/${{ github.event.inputs.environment }}.auto.tfvars
           fi
 
 
