@@ -135,20 +135,16 @@ jobs:
           echo "All tfvars files are present"
       
       
-      # Unlock Before Plan
-      # - name: Safe Unlock Before Plan
-      #   run: |
-      #     WORKSPACE_ID=$(curl --silent \
-      #       --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-      #       https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
-      #       | jq -r '.data.id')
+      # 6. Unlock Stale Locks
+      - name: Unlock Stale Locks
+        run: |
+          echo "🔓 Attempting to remove stale lock..."
+          curl --silent \
+            --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
+            --request DELETE \
+            https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock \
+            && echo "✅ Lock removed (if existed)."
 
-      #     echo "Checking for lock on workspace $WORKSPACE_ID..."
-      #     curl --silent \
-      #       --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-      #       --request DELETE \
-      #       https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock \
-      #       && echo "Lock removed (if existed)."
 
       # 13. Terraform Plan
       
