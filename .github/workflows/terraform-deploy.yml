@@ -227,6 +227,20 @@ jobs:
             ${{ secrets.SLACK_WEBHOOK_URL }}
           exit 1
 
+      # ✅ Force Unlock Before Plan
+      - name: Force Unlock Workspace
+        run: |
+          WORKSPACE_ID=$(curl --silent \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            https://app.terraform.io/api/v2/organizations/$TF_CLOUD_ORGANIZATION/workspaces/${TF_WORKSPACE_PREFIX}${{ github.event.inputs.environment }} \
+            | jq -r '.data.id')
+
+          echo "🔓 Forcing unlock for workspace $WORKSPACE_ID..."
+          curl --silent \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            --request DELETE \
+            https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock
+
       # 9. Terraform Plan with Retry
       - name: Terraform Plan with Retry and Fallback
         run: |
