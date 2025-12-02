@@ -137,9 +137,7 @@ jobs:
           fi
           echo "All tfvars files are present"
       
-     
-
-# ✅ Combined Block: Orphaned Runs + Lock Handling
+      # Combined Block: Orphaned Runs + Lock Handling
       - name: Handle Orphaned Runs and Stale Lock
         run: |
           set +e
@@ -156,10 +154,11 @@ jobs:
           fi
 
           # 1. Cancel Orphaned Runs
-          ACTIVE_RUNS=$(curl --silent \
+          RUNS_JSON=$(curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-            "https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/runs" \
-            | jq -r '.data[] | select(.attributes.status!="planned_and_finished" and .attributes.status!="applied") | .id')
+            "https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/runs")
+
+          ACTIVE_RUNS=$(echo "$RUNS_JSON" | jq -r '.data[]? | select(.attributes.status!="planned_and_finished" and .attributes.status!="applied") | .id')
 
           if [ -n "$ACTIVE_RUNS" ]; then
             echo "⚠️ Orphaned runs detected: $ACTIVE_RUNS"
@@ -177,23 +176,18 @@ jobs:
               fi
             done
             echo "✅ Cancel attempts completed."
-            [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
-              --data '{"text":"Checked and attempted to cancel orphaned Terraform runs for env-${{ github.event.inputs.environment }}."}' \
-              ${{ secrets.SLACK_WEBHOOK_URL }}
           else
             echo "✅ No orphaned runs found."
           fi
 
           # 2. Unlock and Verify Lock Clearance
           echo "🔓 Attempting to remove stale lock..."
-          UNLOCK_RESPONSE=$(curl --silent \
+          curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
             --request DELETE \
-            https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock)
+            https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock >/dev/null
 
-          echo "Unlock API response: $UNLOCK_RESPONSE"
-
-          retries=5
+          retries=6
           while [ $retries -gt 0 ]; do
             LOCK_ID=$(curl --silent \
               --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
@@ -202,9 +196,6 @@ jobs:
 
             if [ -z "$LOCK_ID" ]; then
               echo "✅ No lock detected. Proceeding."
-              [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
-                --data '{"text":"Lock cleared for env-${{ github.event.inputs.environment }} before plan."}' \
-                ${{ secrets.SLACK_WEBHOOK_URL }}
               exit 0
             fi
 
@@ -214,10 +205,8 @@ jobs:
           done
 
           echo "❌ Lock still active after retries. Manual intervention required."
-          [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
-            --data '{"text":"Lock still active for env-${{ github.event.inputs.environment }} after retries. Manual intervention required."}' \
-            ${{ secrets.SLACK_WEBHOOK_URL }}
           exit 1
+
 
  
       # 9. Terraform Plan with Retry
