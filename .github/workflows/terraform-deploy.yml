@@ -137,7 +137,8 @@ jobs:
           fi
           echo "All tfvars files are present"
       
-      # ✅ Orphaned Runs Cleanup
+      
+      # Orphaned Runs Cleanup
       - name: Cancel Orphaned Runs
         run: |
           echo "🔍 Checking for orphaned runs..."
@@ -193,7 +194,16 @@ jobs:
             --request DELETE \
             https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock >/dev/null
 
-          retries=9
+      # ✅ Pre-Plan Lock Wait
+      - name: Wait for Lock Clearance Before Plan
+        run: |
+          echo "🔍 Waiting for lock clearance before plan..."
+          WORKSPACE_ID=$(curl --silent \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            https://app.terraform.io/api/v2/organizations/$TF_CLOUD_ORGANIZATION/workspaces/${TF_WORKSPACE_PREFIX}${{ github.event.inputs.environment }} \
+            | jq -r '.data.id')
+
+          retries=12
           while [ $retries -gt 0 ]; do
             LOCK_ID=$(curl --silent \
               --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
@@ -201,7 +211,7 @@ jobs:
               | jq -r '.data.attributes.lock_id // empty')
 
             if [ -z "$LOCK_ID" ]; then
-              echo "✅ No lock detected. Proceeding."
+              echo "✅ Lock cleared. Proceeding with plan."
               exit 0
             fi
 
@@ -217,9 +227,9 @@ jobs:
           exit 1
 
 
-
  
       # 9. Terraform Plan with Retry
+      
       - name: Terraform Plan with Retry
         run: |
           success=false
@@ -233,14 +243,8 @@ jobs:
               -out=tfplan && { success=true; break; } || echo "⚠️ Plan failed on attempt $i."
             sleep 30
           done
+          [ "$success" = true ] || { echo "❌ Plan failed after 3 attempts"; exit 1; }
 
-          if [ "$success" = false ]; then
-            echo "❌ Plan failed after 3 attempts."
-            [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
-              --data '{"text":"Terraform Plan failed for env-${{ github.event.inputs.environment}} after 3 retries."}' \
-              ${{ secrets.SLACK_WEBHOOK_URL }}
-            exit 1
-          fi
 
      # 16. Auto-Unlock After Failure
       - name: Auto-Unlock Stale Lock After Failure
