@@ -110,6 +110,46 @@ jobs:
         run: |
           terraform init  -input=false -upgrade -reconfigure
 
+     
+     #. Detect and Cancel Active Runs
+      - name: Detect and Cancel Active Runs
+        run: |
+          echo "🔍 Checking for active runs in Terraform Cloud..."
+          WORKSPACE_ID=$(curl --silent \
+            --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
+            https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
+            | jq -r '.data.id')
+
+          if [ -z "$WORKSPACE_ID" ]; then
+            echo "❌ Workspace not found. Exiting."
+            exit 1
+          fi
+
+          ACTIVE_RUNS=$(curl --silent \
+            --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
+            "https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/runs" \
+            | jq -r '.data[] | select(.attributes.status=="planning" or .attributes.status=="applying") | .id')
+
+          if [ -n "$ACTIVE_RUNS" ]; then
+            echo "⚠️ Active runs detected: $ACTIVE_RUNS"
+            for RUN_ID in $ACTIVE_RUNS; do
+              echo "Cancelling run $RUN_ID..."
+              curl --silent \
+                --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
+                --request POST \
+                "https://app.terraform.io/api/v2/runs/$RUN_ID/actions/cancel"
+            done
+            echo "✅ All active runs canceled."
+            if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+              curl -X POST -H 'Content-type: application/json' \
+                --data '{"text":"Cancelled stuck Terraform runs for env-${{ github.event.inputs.environment }} before plan."}' \
+                ${{ secrets.SLACK_WEBHOOK_URL }}
+            fi
+          else
+            echo "✅ No active runs found."
+          fi
+
+
       # 10. Terraform Format Check auto fix
       - name: Terraform Format
         run: terraform fmt -recursive
@@ -148,46 +188,71 @@ jobs:
 
       # 13. Terraform Plan
       
-      - name: Terraform Plan with Unlock and Retry
+      # - name: Terraform Plan with Unlock and Retry
+      #   run: |
+      #     success=false
+      #     for i in 1 2 3; do
+      #       echo "🔄 Attempt $i: Checking lock and unlocking if needed..."
+            
+      #       # Fetch Workspace ID
+      #       WORKSPACE_ID=$(curl --silent \
+      #         --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
+      #         https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
+      #         | jq -r '.data.id')
+
+      #       if [ -z "$WORKSPACE_ID" ]; then
+      #         echo "❌ Failed to fetch workspace ID. Exiting."
+      #         exit 1
+      #       fi
+
+      #       # Try to unlock
+      #       UNLOCK_RESPONSE=$(curl --silent \
+      #         --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
+      #         --request DELETE \
+      #         https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock)
+
+      #       echo "Unlock API response: $UNLOCK_RESPONSE"
+
+      #       # Short wait before retry
+      #       echo "⏳ Waiting 30 seconds before retry..."
+      #       sleep 30
+
+      #       # Run Terraform Plan with shorter lock timeout
+      #       echo "▶ Running terraform plan..."
+      #       terraform plan \
+      #         -lock-timeout=30s \
+      #         -var-file=environments/globals.tfvars \
+      #         -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
+      #         -var environment_name=${{ github.event.inputs.environment }} \
+      #         -out=tfplan && { success=true; break; } || echo "⚠️ Plan failed on attempt $i."
+      #     done
+
+      #     # If all attempts fail, send Slack alert and exit
+      #     if [ "$success" = false ]; then
+      #       echo "❌ Plan failed after 3 attempts."
+      #       if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+      #         curl -X POST -H 'Content-type: application/json' \
+      #           --data '{"text":"Terraform Plan failed for env-${{ github.event.inputs.environment }} after 3 retries due to lock or other issues."}' \
+      #           ${{ secrets.SLACK_WEBHOOK_URL }}
+      #       fi
+      #       exit 1
+      #     fi
+      
+      - name: Terraform Plan with Retry
         run: |
           success=false
           for i in 1 2 3; do
-            echo "🔄 Attempt $i: Checking lock and unlocking if needed..."
-            
-            # Fetch Workspace ID
-            WORKSPACE_ID=$(curl --silent \
-              --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
-              https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
-              | jq -r '.data.id')
-
-            if [ -z "$WORKSPACE_ID" ]; then
-              echo "❌ Failed to fetch workspace ID. Exiting."
-              exit 1
-            fi
-
-            # Try to unlock
-            UNLOCK_RESPONSE=$(curl --silent \
-              --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
-              --request DELETE \
-              https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock)
-
-            echo "Unlock API response: $UNLOCK_RESPONSE"
-
-            # Short wait before retry
-            echo "⏳ Waiting 30 seconds before retry..."
-            sleep 30
-
-            # Run Terraform Plan with shorter lock timeout
-            echo "▶ Running terraform plan..."
+            echo "🔄 Attempt $i: Running terraform plan..."
             terraform plan \
               -lock-timeout=30s \
               -var-file=environments/globals.tfvars \
               -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
               -var environment_name=${{ github.event.inputs.environment }} \
               -out=tfplan && { success=true; break; } || echo "⚠️ Plan failed on attempt $i."
+            echo "⏳ Waiting 30 seconds before next attempt..."
+            sleep 30
           done
 
-          # If all attempts fail, send Slack alert and exit
           if [ "$success" = false ]; then
             echo "❌ Plan failed after 3 attempts."
             if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
@@ -197,6 +262,7 @@ jobs:
             fi
             exit 1
           fi
+
 
 
 
