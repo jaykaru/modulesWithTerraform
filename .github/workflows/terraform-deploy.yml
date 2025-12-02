@@ -37,7 +37,20 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-
+      - name: Set Terraform Workspace
+        run: |
+          # Use workflow_dispatch input or auto-derive from branch
+          if [ -n "${{ github.event.inputs.env }}" ]; then
+            echo "TF_WORKSPACE=${{ github.event.inputs.env }}" >> $GITHUB_ENV
+          else
+            BRANCH_NAME="${GITHUB_REF##*/}"
+            case "$BRANCH_NAME" in
+              features/dev*) echo "TF_WORKSPACE=dev" >> $GITHUB_ENV ;;
+              features/stage*) echo "TF_WORKSPACE=staging" >> $GITHUB_ENV ;;
+              features/prod*) echo "TF_WORKSPACE=prod" >> $GITHUB_ENV ;;
+              *) echo "TF_WORKSPACE=dev" >> $GITHUB_ENV ;;
+            esac
+          fi
    
 
 
