@@ -63,11 +63,11 @@ jobs:
             terraform plan \
               -destroy \
               -var-file=environments/globals.auto.tfvars \
-              -var-file=environments/${{ github.event.inputs.environment }}.auto.tfvars
+              -var-file=environments/${{ github.event.inputs.env }}.auto.tfvars
           else
             terraform plan \
               -var-file=environments/globals.auto.tfvars \
-              -var-file=environments/${{ github.event.inputs.environment }}.auto.tfvars
+              -var-file=environments/${{ github.event.inputs.env }}.auto.tfvars
           fi
 
       - name: Terraform Apply / Destroy
@@ -76,12 +76,12 @@ jobs:
             terraform destroy \
               -auto-approve \
               -var-file=environments/globals.auto.tfvars \
-              -var-file=environments/${{ github.event.inputs.environment }}.auto.tfvars
+              -var-file=environments/${{ github.event.inputs.env }}.auto.tfvars
           else
             terraform apply \
               -auto-approve \
               -var-file=environments/globals.auto.tfvars \
-              -var-file=environments/${{ github.event.inputs.environment }}.auto.tfvars
+              -var-file=environments/${{ github.event.inputs.env }}.auto.tfvars
           fi
 
 
