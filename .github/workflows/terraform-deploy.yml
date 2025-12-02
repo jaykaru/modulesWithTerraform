@@ -64,4 +64,12 @@ jobs:
             terraform plan
           fi
 
+      - name: Terraform Apply / Destroy
+        run: |
+          if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
+            terraform destroy -auto-approve
+          else
+            terraform apply -auto-approve
+          fi
+
     
