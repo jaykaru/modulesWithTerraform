@@ -136,57 +136,72 @@ jobs:
       
       
       # Unlock Before Plan
-      - name: Safe Unlock Before Plan
-        run: |
-          WORKSPACE_ID=$(curl --silent \
-            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-            https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
-            | jq -r '.data.id')
+      # - name: Safe Unlock Before Plan
+      #   run: |
+      #     WORKSPACE_ID=$(curl --silent \
+      #       --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+      #       https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
+      #       | jq -r '.data.id')
 
-          echo "Checking for lock on workspace $WORKSPACE_ID..."
-          curl --silent \
-            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
-            --request DELETE \
-            https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock \
-            && echo "Lock removed (if existed)."
+      #     echo "Checking for lock on workspace $WORKSPACE_ID..."
+      #     curl --silent \
+      #       --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+      #       --request DELETE \
+      #       https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock \
+      #       && echo "Lock removed (if existed)."
 
       # 13. Terraform Plan
+      
       - name: Terraform Plan with Unlock and Retry
         run: |
           success=false
           for i in 1 2 3; do
-            echo "Attempt $i: Checking and unlocking before plan..."
+            echo "🔄 Attempt $i: Checking lock and unlocking if needed..."
+            
+            # Fetch Workspace ID
             WORKSPACE_ID=$(curl --silent \
               --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
               https://app.terraform.io/api/v2/organizations/JayKaruProject/workspaces/env-${{ github.event.inputs.environment }} \
               | jq -r '.data.id')
 
-            curl --silent \
+            if [ -z "$WORKSPACE_ID" ]; then
+              echo "❌ Failed to fetch workspace ID. Exiting."
+              exit 1
+            fi
+
+            # Try to unlock
+            UNLOCK_RESPONSE=$(curl --silent \
               --header "Authorization: Bearer ${{ secrets.TF_TOKEN_app_terraform_io }}" \
               --request DELETE \
-              https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock \
-              && echo "Lock removed before retry."
+              https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock)
 
-            echo "Waiting 90 seconds before retry..."
-            sleep 90
+            echo "Unlock API response: $UNLOCK_RESPONSE"
 
+            # Short wait before retry
+            echo "⏳ Waiting 30 seconds before retry..."
+            sleep 30
+
+            # Run Terraform Plan with shorter lock timeout
+            echo "▶ Running terraform plan..."
             terraform plan \
-              -lock-timeout=120s \
+              -lock-timeout=30s \
               -var-file=environments/globals.tfvars \
               -var-file=environments/${{ github.event.inputs.environment }}.tfvars \
               -var environment_name=${{ github.event.inputs.environment }} \
-              -out=tfplan && { success=true; break; } || echo "Plan failed."
+              -out=tfplan && { success=true; break; } || echo "⚠️ Plan failed on attempt $i."
           done
 
+          # If all attempts fail, send Slack alert and exit
           if [ "$success" = false ]; then
             echo "❌ Plan failed after 3 attempts."
             if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
               curl -X POST -H 'Content-type: application/json' \
-                --data '{"text":"Terraform Plan failed for env-${{ github.event.inputs.environment }} after 3 retries due to lock issues."}' \
+                --data '{"text":"Terraform Plan failed for env-${{ github.event.inputs.environment }} after 3 retries due to lock or other issues."}' \
                 ${{ secrets.SLACK_WEBHOOK_URL }}
             fi
             exit 1
           fi
+
 
 
       # 14. Upload Plan Artifact
