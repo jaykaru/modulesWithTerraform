@@ -137,12 +137,10 @@ jobs:
           fi
           echo "All tfvars files are present"
       
-      # Combined Block: Orphaned Runs + Lock Handling
-      - name: Handle Orphaned Runs and Stale Lock
+      # ✅ Orphaned Runs Cleanup
+      - name: Cancel Orphaned Runs
         run: |
-          set +e
-          echo "🔍 Checking for orphaned runs and stale lock..."
-
+          echo "🔍 Checking for orphaned runs..."
           WORKSPACE_ID=$(curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
             https://app.terraform.io/api/v2/organizations/$TF_CLOUD_ORGANIZATION/workspaces/${TF_WORKSPACE_PREFIX}${{ github.event.inputs.environment }} \
@@ -153,7 +151,6 @@ jobs:
             exit 1
           fi
 
-          # 1. Cancel Orphaned Runs
           RUNS_JSON=$(curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
             "https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/runs")
@@ -175,19 +172,28 @@ jobs:
                 echo "✅ Run $RUN_ID canceled successfully."
               fi
             done
-            echo "✅ Cancel attempts completed."
+            [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"Cancelled orphaned Terraform runs for env-${{ github.event.inputs.environment }}."}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }}
           else
             echo "✅ No orphaned runs found."
           fi
 
-          # 2. Unlock and Verify Lock Clearance
+      # ✅ Lock Handling Before Plan
+      - name: Ensure Lock Cleared Before Plan
+        run: |
           echo "🔓 Attempting to remove stale lock..."
+          WORKSPACE_ID=$(curl --silent \
+            --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
+            https://app.terraform.io/api/v2/organizations/$TF_CLOUD_ORGANIZATION/workspaces/${TF_WORKSPACE_PREFIX}${{ github.event.inputs.environment }} \
+            | jq -r '.data.id')
+
           curl --silent \
             --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
             --request DELETE \
             https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/lock >/dev/null
 
-          retries=6
+          retries=9
           while [ $retries -gt 0 ]; do
             LOCK_ID=$(curl --silent \
               --header "Authorization: Bearer $TF_TOKEN_app_terraform_io" \
@@ -205,7 +211,11 @@ jobs:
           done
 
           echo "❌ Lock still active after retries. Manual intervention required."
+          [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ] && curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"Lock still active for env-${{ github.event.inputs.environment }} after retries. Manual intervention required."}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
           exit 1
+
 
 
  
