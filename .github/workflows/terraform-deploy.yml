@@ -56,20 +56,33 @@ jobs:
         run: |
           terraform init -reconfigure
 
+      
       - name: Terraform Plan
         run: |
           if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
-            terraform plan -destroy
+            terraform plan \
+              -destroy \
+              -var-file=environments/globals.auto.tfvars \
+              -var-file=environments/dev.auto.tfvars
           else
-            terraform plan
+            terraform plan \
+              -var-file=environments/globals.auto.tfvars \
+              -var-file=environments/dev.auto.tfvars
           fi
 
       - name: Terraform Apply / Destroy
         run: |
           if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
-            terraform destroy -auto-approve
+            terraform destroy \
+              -auto-approve \
+              -var-file=environments/globals.auto.tfvars \
+              -var-file=environments/dev.auto.tfvars
           else
-            terraform apply -auto-approve
+            terraform apply \
+              -auto-approve \
+              -var-file=environments/globals.auto.tfvars \
+              -var-file=environments/dev.auto.tfvars
           fi
+
 
     
